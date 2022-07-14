@@ -1,2 +1,4 @@
 venv/
 notes.txt
+shared/
+.aws-sam/
