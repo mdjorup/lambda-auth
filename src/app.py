@@ -40,7 +40,7 @@ def handle_not_found(ex: NotFoundError):
     method = app.current_event.http_method
     path = app.current_event.path
     # definitely want the IP address
-    logger.warning(f"Route {method} {path} not found")
+    logger.warning("Route {} {} not found", method, path)
     return build_response(
         404, {"message": f"Route {method} {path} not found", "error": str(ex)}
     )
