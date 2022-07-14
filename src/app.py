@@ -42,9 +42,9 @@ def handle_not_found(ex: NotFoundError):
     method = app.current_event.http_method
     path = app.current_event.path
     # definitely want the IP address
-    logger.warning("Route {} {} not found", method, path)
+    logger.warning(f"Route {method} {path} not found")
     return build_response(
-        404, {"message": f"Route {method} {path} not found", "error": str(ex)}
+        404, {"message": f"Route {method} {path} not found", "error": "NotFoundError"}
     )
 
 
@@ -69,9 +69,6 @@ def middleware(event_handler, event, context):
 )
 @tracer.capture_lambda_handler
 def handler(event: dict = None, context: LambdaContext = LambdaContext()):
-    """
-    Docstring
-    """
 
     logger.append_keys(
         path=event.get("path"),
