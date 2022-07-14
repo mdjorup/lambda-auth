@@ -7,6 +7,11 @@ Description: >
 Globals:
   Function:
     Timeout: 10
+    Environment:  
+      Variables: 
+        POWERTOOLS_SERVICE_NAME: lambda_auth
+        LOG_LEVEL: INFO
+        LOG_EVENT: true
   Api:
     Cors:
       AllowMethods: "'OPTIONS,POST,GET'"
@@ -36,4 +41,5 @@ Resources:
           Type: Api
           Properties:
             Path: /{path+}
+            Method: ANY
         
