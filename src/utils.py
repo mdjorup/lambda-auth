@@ -2,9 +2,12 @@
 """
 import json
 import re
+import datetime
+import os
 
 from aws_lambda_powertools.event_handler.api_gateway import Response
 from aws_lambda_powertools.event_handler import content_types
+import jwt
 
 
 def build_response(status_code: int, body):
@@ -38,3 +41,14 @@ def strong_password(password):
     )
 
     return bool(match)
+
+
+def generate_jwt(username):
+    payload = {
+        "username": username,
+        "exp": datetime.datetime.now() + datetime.timedelta(days=1),
+    }
+    secret = os.environ.get("JWT_SECRET")
+
+    token = jwt.encode(payload, secret)
+    return token
