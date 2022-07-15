@@ -1,6 +1,12 @@
+import os
+
+
 def load_table(dynamo_resource, table_name, logger):
 
     logger.info(f"Attempting to create table {table_name}")
+
+    if os.environ.get("ENV", "DEV") != "DEV":
+        return dynamo_resource.Table(table_name)
 
     if not table_name:
         logger.debug("No table name provided")
