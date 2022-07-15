@@ -6,7 +6,7 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 10
+    Timeout: 15
     Environment:  
       Variables: 
         POWERTOOLS_SERVICE_NAME: lambda_auth
@@ -47,6 +47,7 @@ Resources:
           ENV: DEV
           DB_NAME: UserTable
           DB_ENDPOINT_URL: http://host.docker.internal:8000
+          JWT_SECRET: "ABCDEFGHIJ0123456789"
       Events:
         All: 
           Type: Api
