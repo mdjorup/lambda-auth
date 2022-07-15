@@ -42,6 +42,11 @@ Resources:
       Tracing: Active
       Architectures:
         - x86_64
+      Environment:
+        Variables: 
+          ENV: DEV
+          DB_NAME: UserTable
+          DB_ENDPOINT_URL: http://host.docker.internal:8000
       Events:
         All: 
           Type: Api
