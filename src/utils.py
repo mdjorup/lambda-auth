@@ -37,7 +37,4 @@ def strong_password(password):
         password,
     )
 
-    if match:
-        return True
-    else:
-        return False
+    return bool(match)
