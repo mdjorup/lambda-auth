@@ -6,6 +6,7 @@ using AWS lambda and AWS KMS
 import os
 import crypt
 
+
 from boto3 import resource
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver
@@ -15,7 +16,7 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.middleware_factory import lambda_handler_decorator
 import jwt
 
-from src.utils import build_response, strong_password
+from src.utils import build_response, strong_password, generate_jwt
 from src.dynamo import load_table
 
 
@@ -136,13 +137,17 @@ def register(username):
 
     # create jwt
 
+    token = generate_jwt(username)
+
+    logger.info(f"User <{username}> successfully registerd")
+
     return build_response(
         201,
         {
             "username": username,
             "table": TABLE,
             "message": f"Successfully registered user <{username}>",
-            "jwt": "23u8r9qjr239rj12931j21239ej1239e",
+            "jwt": token,
         },
     )
 
