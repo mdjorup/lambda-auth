@@ -6,7 +6,7 @@ using AWS lambda and AWS KMS
 import os
 import crypt
 
-from boto3 import client
+from boto3 import resource
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver
 from aws_lambda_powertools.logging import correlation_paths
@@ -28,7 +28,7 @@ logger = Logger(
 
 app = APIGatewayRestResolver()
 
-dynamodb = client(
+dynamodb = resource(
     "dynamodb",
     endpoint_url=os.environ.get("DB_ENDPOINT_URL", "http://host.docker.internal:8000"),
 )
@@ -86,15 +86,34 @@ def register(username):
             {"message": "Please provide a stronger password", "error": "Weak password"},
         )
 
+    if os.environ.get("ENV", "DEV") == "DEV":
+        table = load_table(dynamodb, TABLE, logger)
+    else:
+        table = dynamodb.Table(TABLE)
+
+    if not table:
+        return build_response(
+            500,
+            {
+                "message": f"Problem loading table {TABLE}",
+                "error": "Unable to load table",
+            },
+        )
+
     encrypted_pw = crypt.crypt(password)
 
-    if os.environ.get("ENV", "DEV") == "DEV":
-        load_table(dynamodb, TABLE, logger)
+    item = {"username": username, "password": encrypted_pw}
+
+    table.put_item(Item=item)
+
+    logger.info(f"Successfully added user <{username}> to table <{TABLE}>")
 
     return build_response(
         200,
         {
-            "message": f"Successfully registered user {username}",
+            "username": username,
+            "table": TABLE,
+            "message": f"Successfully registered user <{username}>",
             "jwt": "23u8r9qjr239rj12931j21239ej1239e",
         },
     )
