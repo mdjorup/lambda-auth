@@ -4,6 +4,8 @@ using AWS lambda and AWS KMS
 
 
 import os
+import crypt
+
 
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver
@@ -12,7 +14,7 @@ from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.middleware_factory import lambda_handler_decorator
 
-from src.utils import build_response
+from src.utils import build_response, strong_password
 
 
 tracer = Tracer()
@@ -48,12 +50,64 @@ def handle_not_found(ex: NotFoundError):
     )
 
 
+@app.get("/health")
+def health():
+
+    return build_response(200, {"message": "healthy"})
+
+
+@app.post("/register/<username>")
+@tracer.capture_method
+def register(username):
+    logger.append_keys(username=username)
+    logger.info("Register Attempted")
+
+    password = app.current_event.json_body.get("password", "")
+
+    if not password:
+        logger.debug("Invalid request body - please provide a password")
+        return build_response(
+            400,
+            {"message": "Please provide a password", "error": "Invalid request body"},
+        )
+
+    if not strong_password(password):
+        logger.debug("Weak Password")
+        return build_response(
+            400,
+            {"message": "Please provide a stronger password", "error": "Weak password"},
+        )
+
+    encrypted_pw = crypt.crypt(password)
+
+    return build_response(
+        200,
+        {
+            "message": f"Successfully registered user {username}",
+            "jwt": "23u8r9qjr239rj12931j21239ej1239e",
+        },
+    )
+
+
+@app.post("/login/<username>")
+@tracer.capture_method
+def login(username):
+
+    return build_response(
+        200,
+        {
+            "message": f"Successfully logged in user {username}",
+            "jwt": "23u8r9qjr239rj12931j21239ej1239e",
+        },
+    )
+
+
 @lambda_handler_decorator
 def middleware(event_handler, event, context):
 
     # BEFORE
 
-    event["unauthorized"] = False
+    event["authorized"] = True
 
     # HANDLER
     response = event_handler(event, context)
@@ -78,7 +132,7 @@ def handler(event: dict = None, context: LambdaContext = LambdaContext()):
         .get("sourceIp", "UNAVAILABLE"),
     )
 
-    if event.get("unauthorized", False):
+    if not event.get("authorized", True):
         return build_response(401, {"message": "Unauthorized"})
 
     return app.resolve(event, context)
