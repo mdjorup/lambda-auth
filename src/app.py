@@ -13,6 +13,7 @@ from aws_lambda_powertools.logging import correlation_paths
 from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.middleware_factory import lambda_handler_decorator
+import jwt
 
 from src.utils import build_response, strong_password
 from src.dynamo import load_table
@@ -64,13 +65,52 @@ def health():
     return build_response(200, {"message": "healthy"})
 
 
+@app.get("/users")
+@tracer.capture_method
+def users():
+
+    logger.info("GET users attempted")
+
+    table = load_table(dynamodb, TABLE, logger)
+
+    response = table.scan()
+    data = response.get("Items")
+
+    logger.info("Successful GET users")
+
+    return build_response(200, data)
+
+
 @app.post("/register/<username>")
 @tracer.capture_method
 def register(username):
     logger.append_keys(username=username)
-    logger.info("Register Attempted")
+    logger.info("POST register Attempted")
 
     password = app.current_event.json_body.get("password", "")
+
+    table = load_table(dynamodb, TABLE, logger)
+
+    if not table:
+        return build_response(
+            500,
+            {
+                "message": f"Problem loading table {TABLE}",
+                "error": "Unable to load table",
+            },
+        )
+
+    existing_user = table.get_item(Key={"username": username})
+
+    if existing_user.get("Item"):
+        logger.debug(f"User {username} already exists")
+        return build_response(
+            409,
+            {
+                "message": "Please pick a different username",
+                "error": "Username already taken",
+            },
+        )
 
     if not password:
         logger.debug("Invalid request body - please provide a password")
@@ -86,20 +126,6 @@ def register(username):
             {"message": "Please provide a stronger password", "error": "Weak password"},
         )
 
-    if os.environ.get("ENV", "DEV") == "DEV":
-        table = load_table(dynamodb, TABLE, logger)
-    else:
-        table = dynamodb.Table(TABLE)
-
-    if not table:
-        return build_response(
-            500,
-            {
-                "message": f"Problem loading table {TABLE}",
-                "error": "Unable to load table",
-            },
-        )
-
     encrypted_pw = crypt.crypt(password)
 
     item = {"username": username, "password": encrypted_pw}
@@ -108,8 +134,10 @@ def register(username):
 
     logger.info(f"Successfully added user <{username}> to table <{TABLE}>")
 
+    # create jwt
+
     return build_response(
-        200,
+        201,
         {
             "username": username,
             "table": TABLE,
