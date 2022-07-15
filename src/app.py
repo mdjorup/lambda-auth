@@ -165,6 +165,37 @@ def login(username):
     )
 
 
+@app.put("/validate")
+@tracer.capture_method
+def validate():
+
+    logger.info("Attempting to validate jwt")
+
+    token = app.current_event.json_body.get("jwt")
+
+    if not token:
+        logger.debug("Invalid request body - please provide a jwt")
+        return build_response(
+            400,
+            {"message": "Please provide a jwt", "error": "Invalid request body"},
+        )
+
+    secret = os.environ.get("JWT_SECRET")
+
+    try:
+        jwt.decode(token, secret, algorithms=["HS256"])
+        logger.info("Successfully validated jwt")
+        return build_response(200, {"message": "Successfully validated jwt"})
+    except jwt.exceptions.ExpiredSignatureError as ex:
+        logger.debug("Token expired")
+        return build_response(401, {"message": "Token Expired", "error": str(ex)})
+    except jwt.exceptions.InvalidTokenError as ex:
+        logger.debug("Invalid token")
+        return build_response(
+            401, {"message": "Invalid token. Please log in again.", "error": str(ex)}
+        )
+
+
 @lambda_handler_decorator
 def middleware(event_handler, event, context):
 
