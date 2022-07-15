@@ -6,7 +6,7 @@ using AWS lambda and AWS KMS
 import os
 import crypt
 
-
+from boto3 import client
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver
 from aws_lambda_powertools.logging import correlation_paths
@@ -15,6 +15,7 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.middleware_factory import lambda_handler_decorator
 
 from src.utils import build_response, strong_password
+from src.dynamo import load_table
 
 
 tracer = Tracer()
@@ -26,6 +27,13 @@ logger = Logger(
 # Logging options: info, debug, error, warning
 
 app = APIGatewayRestResolver()
+
+dynamodb = client(
+    "dynamodb",
+    endpoint_url=os.environ.get("DB_ENDPOINT_URL", "http://host.docker.internal:8000"),
+)
+
+TABLE = os.environ.get("DB_NAME")
 
 
 @app.exception_handler(Exception)
@@ -79,6 +87,9 @@ def register(username):
         )
 
     encrypted_pw = crypt.crypt(password)
+
+    if os.environ.get("ENV", "DEV") == "DEV":
+        load_table(dynamodb, TABLE, logger)
 
     return build_response(
         200,
