@@ -2,7 +2,6 @@
 using AWS lambda and AWS KMS
 """
 
-
 import os
 import crypt
 from hmac import compare_digest as compare_hash
@@ -41,6 +40,15 @@ TABLE = os.environ.get("DB_NAME")
 @app.exception_handler(Exception)
 @tracer.capture_method
 def handle_uncaught_error(ex: Exception):
+    """Summary:
+
+
+    Parameters:
+
+
+    Returns:
+
+    """
     logger.exception(msg=str(ex))
 
     return build_response(
@@ -51,24 +59,48 @@ def handle_uncaught_error(ex: Exception):
 @app.not_found
 @tracer.capture_method
 def handle_not_found(ex: NotFoundError):
+    """Summary:
+        Handles requests that route to endpoints that are not found
+
+    Parameters:
+        ex (aws_lambda_powertools.event_handler.exceptions.NotFoundError): The not found error
+
+    Returns:
+        aws_lambda_powertools.event_handler.api_gateway.Response
+    """
     method = app.current_event.http_method
     path = app.current_event.path
-    # definitely want the IP address
     logger.warning(f"Route {method} {path} not found")
     return build_response(
-        404, {"message": f"Route {method} {path} not found", "error": "NotFoundError"}
+        404,
+        {
+            "message": f"Route {method} {path} not found",
+            "error": f"NotFoundError {str(ex)}",
+        },
     )
 
 
 @app.get("/health")
 def health():
+    """Summary:
+        Gets the health of the API
 
+    Returns:
+        aws_lambda_powertools.event_handler.api_gateway.Response: 200 OK if healthy
+    """
     return build_response(200, {"message": "healthy"})
 
 
 @app.get("/users")
 @tracer.capture_method
 def users():
+    """Summary:
+        Gets all users and encrypted passwords stored in the database
+
+    Returns:
+        aws_lambda_powertools.event_handler.api_gateway.Response:
+            200 OK with a list of all users
+    """
 
     logger.info("GET users attempted")
 
@@ -85,6 +117,20 @@ def users():
 @app.post("/register/<username>")
 @tracer.capture_method
 def register(username):
+    """Summary:
+        Registers a new user by adding it to the database and creates a new JWT
+
+    Parameters:
+        username (str): The username to register with
+
+    Returns:
+        aws_lambda_powertools.event_handler.api_gateway.Response:
+            201 if user is successfully registered
+            400 if no password provided or weak password
+            409 if username already exists in DB
+            500 if there is a error accessing the table
+
+    """
     logger.append_keys(username=username)
     logger.info("POST register Attempted")
 
@@ -155,7 +201,20 @@ def register(username):
 @app.post("/login/<username>")
 @tracer.capture_method
 def login(username):
+    """Summary:
+        Attempts to log an existing user in
 
+    Parameters:
+        username (str): The username of the user to log in
+
+    Returns:
+        aws_lambda_powertools.event_handler.api_gateway.Response:
+            200 if user is successfully logs in with a JWT
+            400 if no password provided in request body
+            401 if the password provided is incorrect
+            409 if the user does not exist in the database
+            500 if there is an issue referencing the the database
+    """
     logger.append_keys(username=username)
 
     logger.info("POST login Attempted")
@@ -218,6 +277,15 @@ def login(username):
 @app.put("/validate")
 @tracer.capture_method
 def validate():
+    """Summary:
+        Checks to see if a JWT is valid
+
+    Returns:
+        aws_lambda_powertools.event_handler.api_gateway.Response:
+            200 if JWT is valid
+            400 if no jwt provided in the request body
+            401 if the token is invalid or expired
+    """
 
     logger.info("Attempting to validate jwt")
 
@@ -248,6 +316,18 @@ def validate():
 
 @lambda_handler_decorator
 def middleware(event_handler, event, context):
+    """Summary:
+        Contains the middleware functionality to process requests before and after resolved
+
+    Parameters:
+        event_handler (function): the lambda handler to resolve events
+        event (dict): Information about the specific request
+        context (aws_lambda_powertools.utilities.typing.LambdaContext):
+            Additional information about the context of the request
+
+    Returns:
+        dict: The response obtained by executing the middleware and event handler
+    """
 
     # BEFORE
 
@@ -267,6 +347,17 @@ def middleware(event_handler, event, context):
 )
 @tracer.capture_lambda_handler
 def handler(event: dict = None, context: LambdaContext = LambdaContext()):
+    """Summary:
+        The event handler for the lambda function
+
+    Parameters:
+        event (dict): Information about the specific request
+        context (aws_lambda_powertools.utilities.typing.LambdaContext):
+            Additional information about the context of the request
+
+    Returns:
+        dict: A HTTP response based on the request
+    """
 
     logger.append_keys(
         path=event.get("path"),
