@@ -88,7 +88,7 @@ def health():
     Returns:
         aws_lambda_powertools.event_handler.api_gateway.Response: 200 OK if healthy
     """
-    return build_response(200, {"message": "healthy"})
+    return build_response(200, {"message": "Healthy"})
 
 
 @app.get("/users")
@@ -111,7 +111,7 @@ def users():
 
     logger.info("Successful GET users")
 
-    return build_response(200, data)
+    return build_response(200, {"users": data})
 
 
 @app.post("/register/<username>")
