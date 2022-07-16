@@ -5,8 +5,8 @@ import os
 
 
 def load_table(dynamo_resource, table_name, logger):
-    """Summary: Loads a reference to a DynamoDB table
-
+    """Summary:
+        Loads a reference to a DynamoDB table
 
     Parameters:
         dynamo_resource (DynamoDB.ServiceResource): the DynamoDB reference to load the table from
