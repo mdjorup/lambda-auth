@@ -5,7 +5,7 @@ using AWS lambda and AWS KMS
 
 import os
 import crypt
-
+from hmac import compare_digest as compare_hash
 
 from boto3 import resource
 from aws_lambda_powertools import Logger, Tracer
@@ -156,11 +156,61 @@ def register(username):
 @tracer.capture_method
 def login(username):
 
+    logger.append_keys(username=username)
+
+    logger.info("POST login Attempted")
+
+    password = app.current_event.json_body.get("password", "")
+
+    table = load_table(dynamodb, TABLE, logger)
+
+    if not table:
+        return build_response(
+            500,
+            {
+                "message": f"Problem loading table {TABLE}",
+                "error": "Unable to load table",
+            },
+        )
+
+    existing_user = table.get_item(Key={"username": username}).get("Item")
+
+    if not existing_user:
+        logger.debug(f"User {username} does not exists")
+        return build_response(
+            409,
+            {
+                "message": "Please register instead",
+                "error": "Username does not exist",
+            },
+        )
+
+    if not password:
+        logger.debug("Invalid request body - please provide a password")
+        return build_response(
+            400,
+            {"message": "Please provide a password", "error": "Invalid request body"},
+        )
+
+    encrypted_pw = existing_user.get("password")
+
+    if not compare_hash(encrypted_pw, crypt.crypt(password, encrypted_pw)):
+        logger.debug("Incorrect password")
+        return build_response(
+            401, {"message": "Incorrect password", "error": "Passwords do not match"}
+        )
+
+    token = generate_jwt(username)
+
+    logger.info(f"User <{username}> successfully logged in")
+
     return build_response(
         200,
         {
-            "message": f"Successfully logged in user {username}",
-            "jwt": "23u8r9qjr239rj12931j21239ej1239e",
+            "username": username,
+            "table": TABLE,
+            "message": f"Successfully logged in user <{username}>",
+            "jwt": token,
         },
     )
 
