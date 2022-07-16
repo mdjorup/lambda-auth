@@ -1,7 +1,22 @@
+""" Module containts functionality to load a DynamoDB table, locally or in AWS
+"""
+
 import os
 
 
 def load_table(dynamo_resource, table_name, logger):
+    """Summary: Loads a reference to a DynamoDB table
+
+
+    Parameters:
+        dynamo_resource (DynamoDB.ServiceResource): the DynamoDB reference to load the table from
+        table_name (str): the name of the table to load
+        logger (aws_lambda_powertools.Logger): the logging object to log events
+
+
+    Returns:
+        DynamoDB.Table: A reference to the table to read & write to
+    """
 
     logger.info(f"Attempting to create table {table_name}")
 
@@ -19,15 +34,11 @@ def load_table(dynamo_resource, table_name, logger):
             logger.info(f"Table {table_name} already created")
             return dynamo_resource.Table(table_name)
 
-    try:
-        table = dynamo_resource.create_table(
-            TableName=table_name,
-            KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
-            AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
-            ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-        )
-        logger.info(f"Table {table_name} successfully created")
-        return table
-    except Exception as ex:
-        logger.debug(f"Error creating table {table_name}. {str(ex)}")
-        return None
+    table = dynamo_resource.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    logger.info(f"Table {table_name} successfully created")
+    return table
