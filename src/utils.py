@@ -17,7 +17,7 @@ def build_response(status_code: int, body):
 
     Parameters:
         status_code (int): HTTP status code for the response
-        body: Response body
+        body (dict|str): Response body
 
     Returns:
         Response: A response with the given status code and body
@@ -33,6 +33,17 @@ def build_response(status_code: int, body):
 
 
 def strong_password(password):
+    """Summary:
+        Checks to see if the given password is a strong password
+
+    Parameters:
+        password (str): The password to check
+
+    Returns:
+        bool: True if the password is strong, False if not
+    """
+
+    # Feel free to change
     password_pattern = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$"
 
     match = re.match(
@@ -44,6 +55,16 @@ def strong_password(password):
 
 
 def generate_jwt(username):
+    """Summary:
+        Generates a jwt with a payload
+
+    Parameters:
+        username (str): The username to include in the payload of the token
+
+    Returns:
+        str: A newly created JWT expiring in 1 day
+    """
+
     payload = {
         "username": username,
         "exp": datetime.datetime.now() + datetime.timedelta(days=1),
